@@ -10,6 +10,7 @@ namespace CafeKDSApi.Data
 
         }
 
-        public DbSet<Orders> Orders { get; set; }
+        public DbSet<Order> Order { get; set; }
+        public DbSet<Item> Item {  get; set; }
     }
 }
