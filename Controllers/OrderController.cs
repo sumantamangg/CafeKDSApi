@@ -3,6 +3,7 @@ using CafeKDSApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Any;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace CafeKDSApi.Controllers
 {
@@ -17,32 +18,35 @@ namespace CafeKDSApi.Controllers
             _dbContext = dbContext;
         }
 
+        // Get latest 20 orders that have either been made or not made
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Order>>> GetOrders()
+        public async Task<ActionResult<IEnumerable<Order>>> GetOrders([FromBody]bool isMade)
         {
-            // Retrieve orderIds asynchronously
-            var orderIds = await _dbContext.Order
-                .Select(o => o.OrderId)
-                .ToListAsync();
-
-            // Query orders based on the list of OrderIds
             var groupedItems = await _dbContext.Item
-                .Where(o => orderIds.Contains(o.OrderId))
-                .GroupBy(o => o.OrderId).ToListAsync();
-                
+                .Where(o => o.IsMade == isMade)
+                .GroupBy(o => o.OrderId)
+                .Select(group => new
+                {
+                    OrderId = group.Key,
+                    Items = group.Take(20).ToList()
+                })
+                .Take(20)
+                .ToListAsync();
 
             if (groupedItems == null || !groupedItems.Any())
             {
                 return NotFound("No orders found for the provided OrderIds.");
             }
-            var ordersWithItems = groupedItems.Select(group => new Order
+
+            var ordersWithItems = groupedItems.Select(g => new Order
             {
-                OrderId = group.Key,
-                Items = group.ToList()
+                OrderId = g.OrderId,
+                Items = g.Items
             }).ToList();
 
-            return ordersWithItems;
+            return Ok(ordersWithItems);
         }
+
 
 
         // GET: api/Orders/5
@@ -69,6 +73,33 @@ namespace CafeKDSApi.Controllers
             await _dbContext.SaveChangesAsync();
             
             return CreatedAtAction(nameof(GetOrder), new { id = newOrderId }, order);
+        }
+
+        [HttpPut("{orderId}")]
+        public async Task<IActionResult> UpdateIsMade(int orderId, [FromBody] bool isMade)
+        {
+            var items = await _dbContext.Item
+                .Where(o => o.OrderId == orderId)
+                .ToListAsync();
+
+            if (items == null || !items.Any())
+            {
+                return NotFound("No items found for the provided OrderId.");
+            }
+
+            items.ForEach(item => item.IsMade = isMade);
+
+            try
+            {
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                // Log the exception (not shown here for brevity)
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while updating the items.");
+            }
+
+            return NoContent();
         }
 
         // Helper method to get a new ItemId from the database

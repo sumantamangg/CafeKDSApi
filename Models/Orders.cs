@@ -26,11 +26,11 @@ namespace CafeKDSApi.Models
         // Example: DrinkType, DrinkSize, MilkChoice, etc.
         [Required]
         [StringLength(20)]
-        public string DrinkType { get; set; } = "Latte";
+        public string DrinkType { get; set; } = string.Empty;
 
         [Required]
         [StringLength(10)]
-        public string DrinkSize { get; set; } = "Small";
+        public string DrinkSize { get; set; } = "Medium";
 
         [Required]
         [StringLength(10)]
