@@ -20,7 +20,7 @@ namespace CafeKDSApi.Controllers
 
         // Get latest 20 orders that have either been made or not made
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Order>>> GetOrders([FromBody]bool isMade)
+        public async Task<ActionResult<IEnumerable<Order>>> GetOrders(bool isMade)
         {
             var groupedItems = await _dbContext.Item
                 .Where(o => o.IsMade == isMade)
